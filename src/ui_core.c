@@ -64,6 +64,18 @@ void ui_add_system_law(int port, const char* info) {
     pthread_mutex_unlock(&ui_mutex);
 }
 
+const char* suggest_tool(int port) {
+    switch(port) {
+        case 21:   return "FTP: Try hydra brute-force";
+        case 22:   return "SSH: Check for libssh auth bypass";
+        case 80:   
+        case 443:  return "HTTP: Run gobuster / nikto";
+        case 445:  return "SMB: Vulnerable to EternalBlue?";
+        case 3389: return "RDP: Check for BlueKeep";
+        default:   return "Unknown: Manual recon required";
+    }
+}
+
 void ui_log(const char* msg, int type) {
     pthread_mutex_lock(&ui_mutex);
     if (type == 1) wattron(gui.main_log, COLOR_PAIR(2));
