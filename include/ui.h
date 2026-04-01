@@ -1,21 +1,30 @@
 #ifndef UI_EXT_H
 #define UI_EXT_H
 
-#include <ncurses.h>
+#ifdef _WIN32
+    #include <curses.h>
+#else
+    #include <ncurses.h>
+#endif
 
-// Окна интерфейса
+#include <pthread.h>
+
 typedef struct {
-    WINDOW *header;    // Статус и цель
-    WINDOW *main_log;  // Бегущие строки сканирования
-    WINDOW *side_laws; // System Laws (найденные порты)
-    WINDOW *input;     // Командная строка
+    WINDOW *header;     // Статус: Target, Threads, Time
+    WINDOW *main_log;   // Бегущие логи
+    WINDOW *sidebar;    // System Laws (Open Ports)
+    WINDOW *input_bar;  // Командная строка oberon-ext >
 } ui_t;
 
 void ui_init();
-void ui_draw_borders();
-void ui_target_lock_anim(const char* target);
-void ui_add_law(int port, const char* proto, const char* info); // Добавить "закон" (порт)
-void ui_log(const char* msg, int color_pair);
 void ui_cleanup();
+void ui_log(const char* msg, int type); // 0-info, 1-warn, 2-crit
+void ui_add_system_law(int port, const char* info);
+void ui_set_target(const char* target);
+void ui_refresh_all();
+char* ui_get_input();
+
+// Мьютекс для синхронизации печати из разных потоков (сканеров)
+extern pthread_mutex_t ui_mutex;
 
 #endif
