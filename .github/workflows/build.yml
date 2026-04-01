@@ -25,10 +25,9 @@ jobs:
 
           - target: linux-arm64
             os: ubuntu-latest
-            # Кросс-компиляция ncurses для ARM64 (используем qemu/chroot если нужно, но тут упрощенно)
             setup: |
               sudo apt-get update
-              sudo apt-get install -y gcc-aarch64-linux-gnu libncurses5-dev:arm64 || true
+              sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu libncurses5-dev:arm64
             cmake_flags: "-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc"
 
           - target: macos-arm64
