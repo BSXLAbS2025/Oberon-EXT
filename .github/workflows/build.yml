@@ -1,0 +1,75 @@
+name: Oberon-EXT Multi-Arch Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: linux-amd64
+            os: ubuntu-latest
+            setup: sudo apt-get update && sudo apt-get install -y libncurses5-dev libncursesw5-dev
+            cmake_flags: ""
+          
+          - target: linux-i386
+            os: ubuntu-latest
+            # Установка 32-битных библиотек ncurses
+            setup: |
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
+              sudo apt-get install -y gcc-multilib libncurses5-dev:i386
+            cmake_flags: "-DCMAKE_C_FLAGS=-m32"
+
+          - target: linux-arm64
+            os: ubuntu-latest
+            # Кросс-компиляция ncurses для ARM64 (используем qemu/chroot если нужно, но тут упрощенно)
+            setup: |
+              sudo apt-get update
+              sudo apt-get install -y gcc-aarch64-linux-gnu libncurses5-dev:arm64 || true
+            cmake_flags: "-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc"
+
+          - target: macos-arm64
+            os: macos-latest
+            cmake_flags: "-DCMAKE_OSX_ARCHITECTURES=arm64"
+
+          - target: win64
+            os: windows-latest
+            # На Windows используем vcpkg для установки pdcurses (самый надежный способ)
+            setup: vcpkg install pdcurses:x64-windows
+            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Environment
+      if: matrix.setup
+      run: ${{ matrix.setup }}
+
+    - name: Configure CMake
+      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Prepare Artifacts
+      shell: bash
+      run: |
+        mkdir -p dist
+        # Поиск бинарника (учет путей Windows/Linux)
+        if [ -f "build/Release/oberon-ext.exe" ]; then
+          cp build/Release/oberon-ext.exe dist/
+        elif [ -f "build/oberon-ext" ]; then
+          cp build/oberon-ext dist/
+        fi
+        # Копируем лицензию если есть
+        [ -f "LICENSE" ] && cp LICENSE dist/
+        echo "Build for ${{ matrix.target }} completed." > dist/build_info.txt
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: Oberon-EXT-${{ matrix.target }}
+        path: dist/
