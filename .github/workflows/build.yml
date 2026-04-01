@@ -1,9 +1,10 @@
-name: Oberon-EXT Multi-Arch Build
+name: Oberon-EXT v2.33 Multi-Arch
 
 on: [push, pull_request]
 
 jobs:
-  build:
+  # Основная работа: Windows, Linux x64, macOS
+  native-builds:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -12,39 +13,22 @@ jobs:
           - target: linux-amd64
             os: ubuntu-latest
             setup: sudo apt-get update && sudo apt-get install -y libncurses5-dev libncursesw5-dev
-            cmake_flags: ""
           
-          - target: linux-i386
-            os: ubuntu-latest
-            # Установка 32-битных библиотек ncurses
-            setup: |
-              sudo dpkg --add-architecture i386
-              sudo apt-get update
-              sudo apt-get install -y gcc-multilib libncurses5-dev:i386
-            cmake_flags: "-DCMAKE_C_FLAGS=-m32"
-
-          - target: linux-arm64
-            os: ubuntu-latest
-            setup: |
-              sudo dpkg --add-architecture arm64
-              sudo apt-get update
-              sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu libncurses5-dev:arm64
-            cmake_flags: "-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc"
-
-          - target: macos-arm64
+          - target: macos-universal
             os: macos-latest
-            cmake_flags: "-DCMAKE_OSX_ARCHITECTURES=arm64"
+            # Собираем сразу под Intel и Apple Silicon
+            cmake_flags: "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
 
           - target: win64
             os: windows-latest
-            # На Windows используем vcpkg для установки pdcurses (самый надежный способ)
+            # Используем vcpkg для PDCurses
             setup: vcpkg install pdcurses:x64-windows
             cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Environment
+    - name: Setup Dependencies
       if: matrix.setup
       run: ${{ matrix.setup }}
 
@@ -58,18 +42,42 @@ jobs:
       shell: bash
       run: |
         mkdir -p dist
-        # Поиск бинарника (учет путей Windows/Linux)
         if [ -f "build/Release/oberon-ext.exe" ]; then
           cp build/Release/oberon-ext.exe dist/
         elif [ -f "build/oberon-ext" ]; then
           cp build/oberon-ext dist/
         fi
-        # Копируем лицензию если есть
-        [ -f "LICENSE" ] && cp LICENSE dist/
-        echo "Build for ${{ matrix.target }} completed." > dist/build_info.txt
 
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: Oberon-EXT-${{ matrix.target }}
+        name: Oberon-v2.33-${{ matrix.target }}
+        path: dist/
+
+  # Отдельный джоб для ARM64 (Linux), чтобы не мучаться с кросс-компиляцией
+  arm64-build:
+    name: Build linux-arm64 (QEMU)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build on ARM64
+      uses: uraimo/run-on-arch-action@v2
+      with:
+        arch: aarch64
+        distro: ubuntu22.04
+        githubToken: ${{ github.token }}
+        install: |
+          apt-get update
+          apt-get install -y build-essential cmake libncurses5-dev libncursesw5-dev
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+          mkdir -p dist
+          cp build/oberon-ext dist/
+
+    - name: Upload ARM64
+      uses: actions/upload-artifact@v4
+      with:
+        name: Oberon-v2.33-linux-arm64
         path: dist/
