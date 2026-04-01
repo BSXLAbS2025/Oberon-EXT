@@ -29,7 +29,7 @@ THREAD_FUNC udp_raw_mod(void* arg) {
         
         char log_msg[64];
         snprintf(log_msg, sizeof(log_msg), "UDP Port %d activity detected", task->port);
-        ui_log(log_msg);
+        ui_log(log_msg,1);
     }
     
     close_socket(sock);
