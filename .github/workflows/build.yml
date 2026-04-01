@@ -24,8 +24,8 @@ jobs:
 
           - target: macos-universal
             os: macos-latest
-            # Экранируем точку с запятой обратным слэшем
-            cmake_flags: "-DCMAKE_OSX_ARCHITECTURES=arm64\;x86_64"
+            # Одинарные кавычки снаружи + двойной слэш
+            cmake_flags: '-DCMAKE_OSX_ARCHITECTURES=arm64\\;x86_64'
 
           - target: win64
             os: windows-latest
