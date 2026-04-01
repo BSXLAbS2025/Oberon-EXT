@@ -16,8 +16,8 @@
     typedef int socklen_t;
     #define THREAD_FUNC DWORD WINAPI
     #define THREAD_HANDLE HANDLE
-    #define SOCKET_TYPE SOCKET
 #else
+    #include <dlfcn.h>
     #include <sys/time.h>
     #include <sys/socket.h>
     #include <arpa/inet.h>
@@ -27,11 +27,17 @@
     #define sleep_ms(ms) usleep((ms) * 1000)
     #define close_socket close
     typedef int SOCKET;
-    #define SOCKET_TYPE SOCKET
     #define INVALID_SOCKET -1
     #define THREAD_FUNC void*
     #define THREAD_HANDLE pthread_t
 #endif
+
+// Цвета для логов
+#define CLR_RESET  "\033[0m"
+#define CLR_GREEN  "\033[1;32m"
+#define CLR_CYAN   "\033[1;36m"
+#define CLR_RED    "\033[1;31m"
+#define CLR_YELLOW "\033[1;33m"
 
 typedef struct {
     char ip[64];
