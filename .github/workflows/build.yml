@@ -3,25 +3,32 @@ name: Oberon-EXT v2.33 Multi-Arch
 on: [push, pull_request]
 
 jobs:
-  # Основная работа: Windows, Linux x64, macOS
   native-builds:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false # Чтобы падение одного не отменяло остальные!
       matrix:
         include:
           - target: linux-amd64
             os: ubuntu-latest
             setup: sudo apt-get update && sudo apt-get install -y libncurses5-dev libncursesw5-dev
           
+          - target: linux-i386
+            os: ubuntu-latest
+            setup: |
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
+              sudo apt-get install -y gcc-multilib libncurses5-dev:i386
+            cmake_flags: "-DCMAKE_C_FLAGS=-m32"
+
           - target: macos-universal
             os: macos-latest
-            # Собираем сразу под Intel и Apple Silicon
-            cmake_flags: "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+            # КАВЫЧКИ спасают от ошибки 127!
+            cmake_flags: '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
 
           - target: win64
             os: windows-latest
-            # Используем vcpkg для PDCurses
             setup: vcpkg install pdcurses:x64-windows
             cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
@@ -54,13 +61,11 @@ jobs:
         name: Oberon-v2.33-${{ matrix.target }}
         path: dist/
 
-  # Отдельный джоб для ARM64 (Linux), чтобы не мучаться с кросс-компиляцией
   arm64-build:
     name: Build linux-arm64 (QEMU)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-
     - name: Build on ARM64
       uses: uraimo/run-on-arch-action@v2
       with:
@@ -75,7 +80,6 @@ jobs:
           cmake --build build --config Release
           mkdir -p dist
           cp build/oberon-ext dist/
-
     - name: Upload ARM64
       uses: actions/upload-artifact@v4
       with:
