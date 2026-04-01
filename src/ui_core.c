@@ -1,7 +1,14 @@
 #include "ui.h"
+#include "oberon.h"
 #include <unistd.h>
 
+// Для работы мьютексов на Linux/Mac нужен этот инклюд
+#ifndef _WIN32
+    #include <pthread.h>
+#endif
+
 ui_t gui;
+
 #ifdef _WIN32
     CRITICAL_SECTION ui_lock;
     #define LOCK_UI EnterCriticalSection(&ui_lock)
@@ -20,6 +27,7 @@ void ui_init() {
     init_pair(1, COLOR_CYAN, COLOR_BLACK); 
     init_pair(2, COLOR_GREEN, COLOR_BLACK);
     init_pair(3, COLOR_RED, COLOR_BLACK);
+    init_pair(4, COLOR_YELLOW, COLOR_BLACK);
 
     int y, x; getmaxyx(stdscr, y, x);
     gui.header = newwin(3, x, 0, 0);
@@ -32,7 +40,7 @@ void ui_init() {
 
 void ui_refresh() {
     LOCK_UI;
-    box(gui.header, 0, 0); mvwprintw(gui.header, 0, 2, " OBERON-EXT v5.0 ");
+    box(gui.header, 0, 0); mvwprintw(gui.header, 0, 2, " OBERON-EXT v2.33 ");
     box(gui.main_log, 0, 0);
     box(gui.sidebar, 0, 0); mvwprintw(gui.sidebar, 0, 2, " SYSTEM LAWS ");
     box(gui.input_bar, 0, 0);
@@ -54,20 +62,34 @@ void ui_set_target(const char* target, const char* ip) {
 void ui_add_law(int port, const char* desc) {
     LOCK_UI;
     static int line = 1;
+    if (line > getmaxy(gui.sidebar) - 3) line = 1; // Защита от переполнения
     wattron(gui.sidebar, COLOR_PAIR(2));
     mvwprintw(gui.sidebar, line++, 1, "LAW: PORT %d", port);
-    mvwprintw(gui.sidebar, line++, 2, " > %s", desc);
+    mvwprintw(gui.sidebar, line++, 2, " > %.35s", desc);
     wattroff(gui.sidebar, COLOR_PAIR(2));
+    box(gui.sidebar, 0, 0);
+    mvwprintw(gui.sidebar, 0, 2, " SYSTEM LAWS ");
     wrefresh(gui.sidebar);
     UNLOCK_UI;
 }
 
-void ui_log(const char* msg) {
+// ИСПРАВЛЕНО: Теперь принимает 2 аргумента, как в ui.h
+void ui_log(const char* msg, int type) {
     LOCK_UI;
+    if (type == 1) wattron(gui.main_log, COLOR_PAIR(2)); // Green
+    if (type == 2) wattron(gui.main_log, COLOR_PAIR(3)); // Red
+    
     wprintw(gui.main_log, " [*] %s\n", msg);
+    
+    wattroff(gui.main_log, COLOR_PAIR(2) | COLOR_PAIR(3));
     box(gui.main_log, 0, 0);
     wrefresh(gui.main_log);
     UNLOCK_UI;
 }
 
-void ui_cleanup() { endwin(); }
+void ui_cleanup() { 
+    endwin(); 
+#ifdef _WIN32
+    DeleteCriticalSection(&ui_lock);
+#endif
+}
