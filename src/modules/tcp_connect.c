@@ -54,7 +54,7 @@ void* tcp_connect_mod(void* arg) {
         
         char log_msg[64];
         snprintf(log_msg, sizeof(log_msg), "TCP Port %d is OPEN", task->port);
-        ui_log(log_msg);
+        ui_log(log_msg,1);
     }
 
     close_socket(sock);
