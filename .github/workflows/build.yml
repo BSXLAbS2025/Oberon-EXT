@@ -21,7 +21,7 @@ jobs:
             arch: arm64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Dependencies (Linux)
         if: runner.os == 'Linux'
@@ -39,7 +39,7 @@ jobs:
           gcc -I./include src/*.c src/modules/*.c -o oberon-ext.exe -lws2_32 -lpdcurses
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: oberon-ext-${{ runner.os }}-${{ matrix.arch }}
           path: oberon-ext*
