@@ -126,11 +126,18 @@ int main() {
         } else if (strncmp(cmd, "scan ", 5) == 0) {
             int s, e;
             if (sscanf(cmd + 5, "%d %d", &s, &e) == 2) run_scan_engine(s, e);
-        } else if (strcmp(cmd, "db update") == 0) {
+        } 
+        // ИСПРАВЛЕНО: теперь реагирует на "db status" и "db update"
+        else if (strcmp(cmd, "db status") == 0 || strcmp(cmd, "db update") == 0) {
             db_update();
+        } 
+        // ИСПРАВЛЕНО: теперь реагирует на "exploit" и "use"
+        else if (strncmp(cmd, "exploit ", 8) == 0) {
+            run_exploit_module(cmd + 8);
         } else if (strncmp(cmd, "use ", 4) == 0) {
             run_exploit_module(cmd + 4);
-        } else if (strcmp(cmd, "exit") == 0) {
+        } 
+        else if (strcmp(cmd, "exit") == 0) {
             break;
         } else if (strlen(cmd) > 0) {
             ui_log("Unknown command. Type 'help'.", 1);
