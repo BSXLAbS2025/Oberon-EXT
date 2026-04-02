@@ -17,6 +17,7 @@ ui_t gui;
 
 const char* banners[] = {
     "  ___  ____  _____ ____   ___  _   _ \n / _ \\| __ )| ____|  _ \\ / _ \\| \\ | |\n| | | |  _ \\|  _| | |_) | | | |  \\| |\n| |_| | |_) | |___|  _ <| |_| | |\\  |\n \\___/|____/|_____|_| \\_\\\\___/|_| \\_|\n      CYBER-EDITION v2.33",
+
     "      [ SYSTEM READY ]\n   [ DATABASE ONLINE ]\n   [ EXPLOITS LOADED ]"
 };
 
@@ -35,8 +36,8 @@ void ui_init() {
     init_pair(2, COLOR_GREEN, COLOR_BLACK);
     init_pair(3, COLOR_RED, COLOR_BLACK);
     init_pair(4, COLOR_YELLOW, COLOR_BLACK);
-    init_pair(5, COLOR_MAGENTA, COLOR_BLACK); 
-
+    init_pair(5, COLOR_MAGENTA, COLOR_BLACK); // Цвет для эксплоитов
+    
     int y, x; getmaxyx(stdscr, y, x);
     gui.header = newwin(3, x, 0, 0);
     gui.main_log = newwin(y - 7, x - 45, 3, 0);
@@ -49,16 +50,14 @@ void ui_init() {
 void ui_log(const char* msg, int type) {
     LOCK_UI;
     int color = 2; 
-    if (type == 1) color = 4; // Warn/Help
+    if (type == 1) color = 4; // Warn
     if (type == 2) color = 3; // Crit
-    if (type == 3) color = 5; // Exploit
-    
+    if (type == 3) color = 5; // Exploit Mode
+
     wattron(gui.main_log, COLOR_PAIR(color));
     wprintw(gui.main_log, " [%s] %s\n", (type == 3 ? "EXPLOIT" : "*"), msg);
     wattroff(gui.main_log, COLOR_PAIR(color));
-    
     box(gui.main_log, 0, 0);
-    mvwprintw(gui.main_log, 0, 2, " CONSOLE LOG ");
     wrefresh(gui.main_log);
     UNLOCK_UI;
 }
@@ -68,8 +67,8 @@ void ui_show_help() {
     ui_log("help           - Show this menu", 0);
     ui_log("target <host>  - Resolve and set target", 0);
     ui_log("scan <s-e>     - Multi-threaded port scan", 0);
-    ui_log("use <path>     - Run module (e.g. aux/mac)", 3);
-    ui_log("db update      - Sync repository", 1);
+    ui_log("exploit <id>   - Run exploit from DB", 3);
+    ui_log("db status      - Check exploits repository", 1);
     ui_log("exit           - Terminate session", 2);
 }
 
@@ -103,4 +102,5 @@ void ui_set_target(const char* target, const char* ip) {
     wrefresh(gui.header);
 }
 
-void ui_cleanup() { endwin(); }
+
+void ui_cleanup() { endwin(); } 
