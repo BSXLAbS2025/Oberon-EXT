@@ -14,15 +14,14 @@ typedef struct {
     WINDOW *input_bar;
 } ui_t;
 
-// Делаем gui видимой для всех файлов
 extern ui_t gui;
 
 void ui_init();
+void ui_show_splash(); // Рандомный баннер при старте
 void ui_refresh();
 void ui_set_target(const char* target, const char* ip);
 void ui_add_law(int port, const char* desc);
-void ui_log(const char* msg, int type); // 0-info, 1-warn, 2-crit
+void ui_log(const char* msg, int type); // 0-info(green), 1-warn(yellow), 2-crit(red)
 void ui_cleanup();
-void ui_splash();
 
 #endif
