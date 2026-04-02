@@ -17,11 +17,12 @@ typedef struct {
 extern ui_t gui;
 
 void ui_init();
-void ui_show_splash(); // Рандомный баннер при старте
+void ui_show_splash();
 void ui_refresh();
 void ui_set_target(const char* target, const char* ip);
 void ui_add_law(int port, const char* desc);
-void ui_log(const char* msg, int type); // 0-info(green), 1-warn(yellow), 2-crit(red)
+void ui_log(const char* msg, int type); // 0-info, 1-warn, 2-crit, 3-exploit
+void ui_show_help(); // Новая команда помощи
 void ui_cleanup();
 
 #endif
