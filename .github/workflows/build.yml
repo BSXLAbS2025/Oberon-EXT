@@ -7,7 +7,7 @@ jobs:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false # Чтобы падение одного не отменяло остальные!
+      fail-fast: false
       matrix:
         include:
           - target: linux-amd64
@@ -19,19 +19,18 @@ jobs:
             setup: |
               sudo dpkg --add-architecture i386
               sudo apt-get update
-              sudo apt-get install -y gcc-multilib libncurses5-dev:i386
+              sudo apt-get install -y gcc-multilib libncurses5-dev:i386 libncursesw5-dev:i386
             cmake_flags: "-DCMAKE_C_FLAGS=-m32"
 
-          - target: macos-universal
+          - target: macos-arm64
             os: macos-latest
-            # Одинарные кавычки снаружи + двойной слэш
             cmake_flags: "-DCMAKE_OSX_ARCHITECTURES=arm64"
 
           - target: win64
             os: windows-latest
+            # УБИРАЕМ ручной путь, используем интеграцию GitHub
             setup: vcpkg install pdcurses:x64-windows
-            # Используем встроенную переменную GitHub для пути
-            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_INSTALLATION_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=C:/hostedtoolcache/windows/vcpkg/2024.04.26/scripts/buildsystems/vcpkg.cmake"
 
     steps:
     - uses: actions/checkout@v4
@@ -50,11 +49,9 @@ jobs:
       shell: bash
       run: |
         mkdir -p dist
-        if [ -f "build/Release/oberon-ext.exe" ]; then
-          cp build/Release/oberon-ext.exe dist/
-        elif [ -f "build/oberon-ext" ]; then
-          cp build/oberon-ext dist/
-        fi
+        [ -f "build/Release/oberon-ext.exe" ] && cp build/Release/oberon-ext.exe dist/
+        [ -f "build/oberon-ext" ] && cp build/oberon-ext dist/
+        echo "v2.33 build success" > dist/ver.txt
 
     - name: Upload
       uses: actions/upload-artifact@v4
@@ -73,14 +70,14 @@ jobs:
         arch: aarch64
         distro: ubuntu22.04
         githubToken: ${{ github.token }}
+        # Добавили libtinfo-dev и явно указали компилятор
         install: |
           apt-get update
-          apt-get install -y build-essential cmake libncurses5-dev libncursesw5-dev
+          apt-get install -y build-essential cmake libncurses5-dev libncursesw5-dev libtinfo-dev
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release
-          mkdir -p dist
-          cp build/oberon-ext dist/
+          mkdir -p dist && cp build/oberon-ext dist/
     - name: Upload ARM64
       uses: actions/upload-artifact@v4
       with:
