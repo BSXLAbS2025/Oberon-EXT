@@ -30,8 +30,8 @@ jobs:
           - target: win64
             os: windows-latest
             setup: vcpkg install pdcurses:x64-windows
-            # Это стандартный путь vcpkg на виртуальных машинах GitHub
-            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=C:/node/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            # Используем встроенную переменную GitHub для пути
+            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_INSTALLATION_ROOT }}/scripts/buildsystems/vcpkg.cmake"
 
     steps:
     - uses: actions/checkout@v4
