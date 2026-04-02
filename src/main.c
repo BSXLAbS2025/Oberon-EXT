@@ -1,10 +1,11 @@
-\#include "oberon.h"
-#include "ui.h"
-#include "modules.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "oberon.h"
+#include "ui.h"
+#include "modules.h"
 
 char current_target[128] = "";
 char current_ip[64] = "";
@@ -12,48 +13,54 @@ const char* DB_URL = "https://github.com/BSXLAbS2025/Oberon-EXT-db";
 
 // Функция для выполнения системных команд и вывода в лог
 void sys_exec(const char* command) {
-    char buffer[128];
+    char buffer[256];
     FILE* pipe = popen(command, "r");
     if (!pipe) {
         ui_log("SYSTEM ERROR: Failed to execute command.", 2);
         return;
     }
     while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+        // Убираем символ переноса строки в конце, если он есть
+        buffer[strcspn(buffer, "\n")] = 0;
         ui_log(buffer, 0);
     }
     pclose(pipe);
 }
 
-// Реальное обновление базы данных из твоего репозитория
+// Реальное обновление базы данных из репозитория
 void db_update() {
     ui_log("Connecting to BSXLAbS2025/Oberon-EXT-db...", 1);
     
-    // Проверяем наличие git, если нет - используем wget
     if (access("/usr/bin/git", F_OK) == 0) {
         if (access("db", F_OK) == 0) {
-            ui_log("Updating existing database via git pull...", 0);
+            ui_log("Updating database via git pull...", 0);
             sys_exec("cd db && git pull");
         } else {
-            ui_log("Cloning remote database via git clone...", 0);
-            char cmd[256];
-            sprintf(cmd, "git clone %s db", DB_URL);
+            ui_log("Cloning database via git clone...", 0);
+            char cmd[512];
+            snprintf(cmd, sizeof(cmd), "git clone %s db", DB_URL);
             sys_exec(cmd);
         }
     } else {
-        ui_log("Git not found. Attempting raw download via wget...", 4);
+        ui_log("Git not found. Using wget...", 4);
         sys_exec("mkdir -p db && wget -qO db/master.zip https://github.com/BSXLAbS2025/Oberon-EXT-db/archive/refs/heads/main.zip");
     }
     ui_log("Database synchronization complete.", 0);
 }
 
-// Поиск и запуск эксплоита из скачанной папки db/
+// Запуск эксплоита из папки db/
 void run_exploit_module(const char* module_path) {
-    char full_path[256];
-    sprintf(full_path, "db/exploits/%s.sh", module_path); // Ищем shell-скрипт эксплоита
+    if (strlen(current_ip) == 0) {
+        ui_log("ERROR: Set target first!", 2);
+        return;
+    }
+
+    char full_path[512];
+    snprintf(full_path, sizeof(full_path), "db/exploits/%s.sh", module_path);
 
     if (access(full_path, F_OK) == 0) {
-        char exec_cmd[512];
-        sprintf(exec_cmd, "bash %s %s", full_path, current_ip);
+        char exec_cmd[1024];
+        snprintf(exec_cmd, sizeof(exec_cmd), "bash %s %s", full_path, current_ip);
         ui_log("Executing exploit module...", 3);
         sys_exec(exec_cmd);
     } else {
@@ -63,22 +70,29 @@ void run_exploit_module(const char* module_path) {
 
 void run_scan_engine(int start, int end) {
     if (strlen(current_ip) == 0) {
-        ui_log("ERROR: No target set. Use 'target <host>' first.", 2);
+        ui_log("ERROR: No target set. Use 'target <host>'", 2);
         return;
     }
 
     char msg[128];
-    sprintf(msg, "Launching thread pool for ports %d-%d", start, end);
+    snprintf(msg, sizeof(msg), "Scanning ports %d-%d...", start, end);
     ui_log(msg, 0);
 
     for (int p = start; p <= end; p++) {
         scan_task_t *task = malloc(sizeof(scan_task_t));
-        strcpy(task->ip, current_ip);
+        if (!task) continue;
+        
+        strncpy(task->ip, current_ip, sizeof(task->ip));
         task->port = p;
 
+#ifndef _WIN32
         pthread_t thread;
-        pthread_create(&thread, NULL, (void*)banner_grab_mod, task);
-        pthread_detach(thread);
+        if (pthread_create(&thread, NULL, (void* (*)(void*))banner_grab_mod, task) == 0) {
+            pthread_detach(thread);
+        } else {
+            free(task);
+        }
+#endif
     }
 }
 
@@ -88,7 +102,6 @@ int main() {
     ui_init();
     
     ui_log("Oberon-EXT v2.33 Professional Engine Online.", 0);
-    ui_log("System architecture: Multi-threaded / POSIX Sockets.", 0);
     ui_log("Linked to DB: BSXLAbS2025/Oberon-EXT-db", 1);
 
     char cmd[256];
@@ -101,10 +114,10 @@ int main() {
         if (strcmp(cmd, "help") == 0) {
             ui_show_help();
         } else if (strncmp(cmd, "target ", 7) == 0) {
-            strcpy(current_target, cmd + 7);
+            strncpy(current_target, cmd + 7, sizeof(current_target) - 1);
             char* resolved = resolve_host(current_target);
             if (resolved) {
-                strcpy(current_ip, resolved);
+                strncpy(current_ip, resolved, sizeof(current_ip) - 1);
                 ui_set_target(current_target, current_ip);
                 ui_log("Target identification successful.", 0);
             } else {
@@ -116,12 +129,11 @@ int main() {
         } else if (strcmp(cmd, "db update") == 0) {
             db_update();
         } else if (strncmp(cmd, "use ", 4) == 0) {
-            // Команда в стиле MSF: use exploits/linux/ssh_brute
             run_exploit_module(cmd + 4);
         } else if (strcmp(cmd, "exit") == 0) {
             break;
         } else if (strlen(cmd) > 0) {
-            ui_log("Unknown command. Type 'help' for options.", 1);
+            ui_log("Unknown command. Type 'help'.", 1);
         }
     }
 
