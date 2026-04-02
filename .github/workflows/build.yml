@@ -26,12 +26,6 @@ jobs:
             os: macos-latest
             cmake_flags: "-DCMAKE_OSX_ARCHITECTURES=arm64"
 
-          - target: win64
-            os: windows-latest
-            # УБИРАЕМ ручной путь, используем интеграцию GitHub
-            setup: vcpkg install pdcurses:x64-windows
-            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=C:/hostedtoolcache/windows/vcpkg/2024.04.26/scripts/buildsystems/vcpkg.cmake"
-
     steps:
     - uses: actions/checkout@v4
 
