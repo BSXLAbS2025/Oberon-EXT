@@ -56,7 +56,7 @@ void run_exploit_module(const char* module_path) {
     }
 
     char full_path[512];
-    snprintf(full_path, sizeof(full_path), "db/exploits/%s.sh", module_path);
+    snprintf(full_path, sizeof(full_path), "db/%s.sh", module_path);
 
     if (access(full_path, F_OK) == 0) {
         char exec_cmd[1024];
